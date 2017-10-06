@@ -1,0 +1,161 @@
+// DMXmotorcontrol_v3
+// Adding DIP switch addressing to the motor control unit
+
+// MOTOR GLOBALS ______________________________________
+#include <AccelStepper.h>
+int motorDirPin = 9; 
+int motorStepPin = 8; 
+AccelStepper stepper(1, motorStepPin, motorDirPin);
+
+int energy = 1000;    // The current speed in steps/second
+int topSpeed = 750; // The max speed in the energy mapping
+int go = 1;      // Either 1, 0 or -1
+
+
+// DMX GLOBALS ______________________________________
+#include <Conceptinetics.h>
+#define DMX_SLAVE_CHANNELS   2
+DMX_Slave dmx_slave ( DMX_SLAVE_CHANNELS );
+const int ledPin = 13;
+
+
+// DMX ADDRESS VIA 10 PIN DIP SWITCH ________________
+// Arduino pins used for the dip switches - pins 8&9 are used in DMX shield
+// DMX shield uses pin 2 for DE, pin 3 & 4 for Tx & Rx
+
+#define S1 5
+#define S2 6
+#define S3 7
+#define S4 10
+#define S5 11
+#define S6 12
+#define S7 A0
+#define S8 A1
+#define S9 A2
+
+// switch 10 is currently empty
+
+
+// State of each switch (0 or 1)
+int s1_state;
+int s2_state;
+int s3_state;
+int s4_state;
+int s5_state;
+int s6_state;
+int s7_state;
+int s8_state;
+int s9_state;
+
+
+int dmxxx = 0;    // DMX address
+
+
+void setup()
+{
+
+
+  // pins for switches over the pullup resistor for cleaner values
+  pinMode(S1, INPUT_PULLUP);
+  pinMode(S2, INPUT_PULLUP);
+  pinMode(S3, INPUT_PULLUP);
+  pinMode(S4, INPUT_PULLUP);
+  pinMode(S5, INPUT_PULLUP);
+  pinMode(S6, INPUT_PULLUP);
+  pinMode(S7, INPUT_PULLUP);
+  pinMode(S8, INPUT_PULLUP);
+  pinMode(S9, INPUT_PULLUP);
+
+  s1_state = digitalRead(S1);
+  s2_state = digitalRead(S2);
+  s3_state = digitalRead(S3);
+  s4_state = digitalRead(S4);
+  s5_state = digitalRead(S5);
+  s6_state = digitalRead(S6);
+  s7_state = digitalRead(S7);
+  s8_state = digitalRead(S8);
+  s9_state = digitalRead(S9);
+
+  dmxxx = 0;
+
+  if (s1_state == 0) {
+    dmxxx = dmxxx + 1;
+  }
+
+  if (s2_state == 0) {
+    dmxxx = dmxxx + 2;
+  }
+
+  if (s3_state == 0) {
+    dmxxx = dmxxx + 4;
+  }
+
+  if (s4_state == 0) {
+    dmxxx = dmxxx + 8;
+  }
+
+  if (s5_state == 0) {
+    dmxxx = dmxxx + 16;
+  }
+
+  if (s6_state == 0) {
+    dmxxx = dmxxx + 32;
+  }
+
+  if (s7_state == 0) {
+    dmxxx = dmxxx + 64;
+  }
+
+  if (s8_state == 0) {
+    dmxxx = dmxxx + 128;
+  }
+
+  if (s9_state == 0){
+    dmxxx = dmxxx + 256;
+  }
+
+
+
+  // MOTOR SETUP
+  stepper.setMaxSpeed(1000);
+  stepper.setSpeed(1000);
+
+  // DMX SETUP
+  // Conceptinetics library only needs the setStartAddress defined by dmxxx
+  // getChannelValue is numerically assigned based on the number of channels declared in DMX_SLAVE_CHANNELS
+
+  dmx_slave.enable ();
+  dmx_slave.setStartAddress (dmxxx);
+  pinMode ( ledPin, OUTPUT );
+}
+
+
+void loop()
+{
+  energy = dmx_slave.getChannelValue (2);
+  energy = map(energy, 0, 255, 0, topSpeed);
+  
+  if ( dmx_slave.getChannelValue (1) > 127 ) {
+    digitalWrite ( ledPin, HIGH );
+    go = 1;
+  }
+
+  if ( dmx_slave.getChannelValue (1) < 127 ) {
+    digitalWrite ( ledPin, LOW );
+    go = -1;
+  }
+
+  stepper.setSpeed(go * energy);
+  stepper.runSpeed();
+
+}
+
+
+
+
+
+
+
+
+
+
